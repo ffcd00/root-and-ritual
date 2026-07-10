@@ -133,17 +133,58 @@ function findLevel(levelOrId, levels) {
   return { level: levels[index], index };
 }
 
-function createBoard(level) {
+function randomIndex(maxExclusive, random) {
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) {
+    throw new RangeError("Random source must return a number from 0 (inclusive) to 1 (exclusive)");
+  }
+  return Math.floor(value * maxExclusive);
+}
+
+/**
+ * Shuffles ingredients and empty soil between the authored non-rock positions.
+ * Rocks keep their placement, while every possible harvest location is fresh.
+ */
+function shuffleHarvestTiles(tiles, random) {
+  const shuffled = tiles.flat().map(cloneTile);
+  const movableIndexes = [];
+  const movableTiles = [];
+
+  shuffled.forEach((tile, index) => {
+    if (tile.kind !== TILE_KIND.ROCK) {
+      movableIndexes.push(index);
+      movableTiles.push(tile);
+    }
+  });
+
+  for (let index = movableTiles.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1, random);
+    [movableTiles[index], movableTiles[swapIndex]] = [movableTiles[swapIndex], movableTiles[index]];
+  }
+
+  movableIndexes.forEach((boardIndex, index) => {
+    shuffled[boardIndex] = movableTiles[index];
+  });
+
+  return shuffled;
+}
+
+function createBoard(level, random) {
+  const tiles = shuffleHarvestTiles(level.tiles, random);
   return {
     rows: level.board.rows,
     columns: level.board.columns,
-    cells: level.tiles.flatMap((row, rowIndex) => row.map((tile, columnIndex) => ({
-      id: `${rowIndex}:${columnIndex}`,
-      row: rowIndex,
-      column: columnIndex,
-      isDug: false,
-      tile: cloneTile(tile),
-    }))),
+    cells: tiles.map((tile, index) => {
+      const row = Math.floor(index / level.board.columns);
+      const column = index % level.board.columns;
+      return {
+        id: `${row}:${column}`,
+        row,
+        column,
+        isDug: false,
+        tile: cloneTile(tile),
+      };
+    }),
   };
 }
 
@@ -157,16 +198,17 @@ function startAction(level, type = ACTION_TYPE.LEVEL_STARTED, extra = {}) {
 }
 
 /**
- * Builds a new level state. `levelOrId` accepts a numeric index, an id, or the
- * exact level object from `levels` (the default collection is LEVELS).
+ * Builds a new shuffled level state. `levelOrId` accepts a numeric index, an
+ * id, or the exact level object from `levels`. Pass a random function to make
+ * a generated layout reproducible in a test or replay system.
  */
-export function createLevelState(levelOrId = 0, levels = LEVELS) {
+export function createLevelState(levelOrId = 0, levels = LEVELS, random = Math.random) {
   const { level, index } = findLevel(levelOrId, levels);
   return {
     levelId: level.id,
     levelIndex: index,
     levelName: level.name,
-    board: createBoard(level),
+    board: createBoard(level, random),
     recipe: cloneRecipe(level.recipe),
     inventory: {},
     digLimit: level.digLimit,
@@ -178,8 +220,8 @@ export function createLevelState(levelOrId = 0, levels = LEVELS) {
 }
 
 /** Creates a fresh game at the first level in the supplied collection. */
-export function createGameState(levels = LEVELS) {
-  return createLevelState(0, levels);
+export function createGameState(levels = LEVELS, random = Math.random) {
+  return createLevelState(0, levels, random);
 }
 
 /**
@@ -300,7 +342,7 @@ export function digCell(state, row, column) {
  * game complete after the last level. If cooking is unavailable, it returns a
  * state with a `cook-blocked` action and otherwise unchanged game data.
  */
-export function cookAndAdvance(state, levels = LEVELS) {
+export function cookAndAdvance(state, levels = LEVELS, random = Math.random) {
   validateLevelCollection(levels);
   if (state.status !== GAME_STATUS.READY_TO_COOK) {
     return {
@@ -336,7 +378,7 @@ export function cookAndAdvance(state, levels = LEVELS) {
     };
   }
 
-  const nextState = createLevelState(currentIndex + 1, levels);
+  const nextState = createLevelState(currentIndex + 1, levels, random);
   return {
     ...nextState,
     completedLevelIds,
@@ -350,10 +392,10 @@ export function cookAndAdvance(state, levels = LEVELS) {
   };
 }
 
-/** Restores the current level's original deterministic layout and dig budget. */
-export function restartLevel(state, levels = LEVELS) {
+/** Restores the current level with a newly shuffled layout and full dig budget. */
+export function restartLevel(state, levels = LEVELS, random = Math.random) {
   const { level } = findLevel(state.levelId, levels);
-  const restarted = createLevelState(state.levelId, levels);
+  const restarted = createLevelState(state.levelId, levels, random);
   return {
     ...restarted,
     completedLevelIds: [...state.completedLevelIds],

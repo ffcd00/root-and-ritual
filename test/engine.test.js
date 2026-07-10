@@ -27,7 +27,38 @@ function harvestAllRequired(state) {
   return next;
 }
 
-test("levels are deterministic, complete, and become gradually more complex", () => {
+const keepAuthoredOrder = () => 0.999999;
+const reverseHarvestOrder = () => 0;
+
+function findCell(state, predicate, description) {
+  const cell = state.board.cells.find(predicate);
+  assert.ok(cell, `Expected to find ${description}`);
+  return cell;
+}
+
+function findIngredientCell(state, item) {
+  return findCell(
+    state,
+    (cell) => cell.tile.kind === TILE_KIND.INGREDIENT && cell.tile.item === item,
+    item,
+  );
+}
+
+function findTileKindCell(state, kind) {
+  return findCell(state, (cell) => cell.tile.kind === kind, kind);
+}
+
+function boardLayout(state) {
+  return state.board.cells.map((cell) => (
+    cell.tile.kind === TILE_KIND.INGREDIENT ? `${cell.tile.kind}:${cell.tile.item}` : cell.tile.kind
+  ));
+}
+
+function sortedTilePool(state) {
+  return [...boardLayout(state)].sort();
+}
+
+test("level templates are complete and become gradually more complex", () => {
   assert.equal(LEVELS.length, 4);
 
   let previousArea = 0;
@@ -49,6 +80,23 @@ test("levels are deterministic, complete, and become gradually more complex", ()
   }
 });
 
+test("a generated board shuffles harvest locations while preserving its tile pool and rocks", () => {
+  const authored = createLevelState("root-cellar", LEVELS, keepAuthoredOrder);
+  const shuffled = createLevelState("root-cellar", LEVELS, reverseHarvestOrder);
+  const repeated = createLevelState("root-cellar", LEVELS, reverseHarvestOrder);
+
+  assert.deepEqual(sortedTilePool(shuffled), sortedTilePool(authored));
+  assert.deepEqual(boardLayout(repeated), boardLayout(shuffled));
+  assert.notDeepEqual(
+    authored.board.cells.filter((cell) => cell.tile.kind === TILE_KIND.INGREDIENT).map((cell) => cell.id),
+    shuffled.board.cells.filter((cell) => cell.tile.kind === TILE_KIND.INGREDIENT).map((cell) => cell.id),
+  );
+  assert.deepEqual(
+    authored.board.cells.filter((cell) => cell.tile.kind === TILE_KIND.ROCK).map((cell) => cell.id),
+    shuffled.board.cells.filter((cell) => cell.tile.kind === TILE_KIND.ROCK).map((cell) => cell.id),
+  );
+});
+
 test("createGameState builds an untouched first level with a hidden board", () => {
   const state = createGameState();
 
@@ -65,15 +113,17 @@ test("createGameState builds an untouched first level with a hidden board", () =
 
 test("digging an ingredient is immutable, reveals it, and updates inventory", () => {
   const before = createLevelState("root-cellar");
-  const after = digCell(before, 0, 0);
+  const carrotCell = findIngredientCell(before, "carrot");
+  const after = digCell(before, carrotCell.row, carrotCell.column);
+  const afterCarrot = after.board.cells.find((cell) => cell.id === carrotCell.id);
 
   assert.notEqual(after, before);
   assert.equal(before.digsUsed, 0);
-  assert.equal(before.board.cells[0].isDug, false);
+  assert.equal(carrotCell.isDug, false);
   assert.equal(after.digsUsed, 1);
-  assert.equal(after.board.cells[0].isDug, true);
+  assert.equal(afterCarrot.isDug, true);
   assert.deepEqual(after.inventory, { carrot: 1 });
-  assert.deepEqual(getRevealedTile(after.board.cells[0]), {
+  assert.deepEqual(getRevealedTile(afterCarrot), {
     kind: TILE_KIND.INGREDIENT,
     item: "carrot",
   });
@@ -83,8 +133,10 @@ test("digging an ingredient is immutable, reveals it, and updates inventory", ()
 
 test("empty tiles and rocks consume digs but do not add food", () => {
   const start = createLevelState(0);
-  const afterEmpty = digCell(start, 0, 1);
-  const afterRock = digCell(afterEmpty, 0, 2);
+  const emptyCell = findTileKindCell(start, TILE_KIND.EMPTY);
+  const rockCell = findTileKindCell(start, TILE_KIND.ROCK);
+  const afterEmpty = digCell(start, emptyCell.row, emptyCell.column);
+  const afterRock = digCell(afterEmpty, rockCell.row, rockCell.column);
 
   assert.equal(afterEmpty.lastAction.type, ACTION_TYPE.DUG_EMPTY);
   assert.equal(afterRock.lastAction.type, ACTION_TYPE.DUG_ROCK);
@@ -96,8 +148,9 @@ test("empty tiles and rocks consume digs but do not add food", () => {
 test("invalid and repeated digs never consume the budget", () => {
   const start = createLevelState(0);
   const outside = digCell(start, -1, 0);
-  const firstDig = digCell(outside, 0, 0);
-  const repeated = digCell(firstDig, 0, 0);
+  const firstCell = outside.board.cells[0];
+  const firstDig = digCell(outside, firstCell.row, firstCell.column);
+  const repeated = digCell(firstDig, firstCell.row, firstCell.column);
 
   assert.equal(outside.digsUsed, 0);
   assert.equal(outside.lastAction.reason, "outside-board");
@@ -109,8 +162,10 @@ test("invalid and repeated digs never consume the budget", () => {
 
 test("the recipe becomes cookable only after every required ingredient is collected", () => {
   const start = createLevelState("root-cellar");
-  const carrot = digCell(start, 0, 0);
-  const ready = digCell(carrot, 1, 1);
+  const carrotCell = findIngredientCell(start, "carrot");
+  const carrot = digCell(start, carrotCell.row, carrotCell.column);
+  const onionCell = findIngredientCell(carrot, "onion");
+  const ready = digCell(carrot, onionCell.row, onionCell.column);
 
   assert.equal(isRecipeReady(carrot.recipe, carrot.inventory), false);
   assert.equal(carrot.status, GAME_STATUS.DIGGING);
@@ -125,14 +180,18 @@ test("the recipe becomes cookable only after every required ingredient is collec
 
 test("running out of digs fails the level unless the final dig completes its recipe", () => {
   let state = createLevelState("root-cellar");
-  for (const [row, column] of [[0, 1], [0, 2], [0, 3], [1, 0], [1, 2], [1, 3]]) {
-    state = digCell(state, row, column);
+  const nonIngredients = state.board.cells
+    .filter((cell) => cell.tile.kind !== TILE_KIND.INGREDIENT)
+    .slice(0, state.digLimit);
+  for (const cell of nonIngredients) {
+    state = digCell(state, cell.row, cell.column);
   }
 
   assert.equal(state.digsUsed, state.digLimit);
   assert.equal(state.status, GAME_STATUS.OUT_OF_DIGS);
   assert.equal(state.lastAction.type, ACTION_TYPE.OUT_OF_DIGS);
-  assert.equal(digCell(state, 1, 1).digsUsed, state.digsUsed);
+  const onionCell = findIngredientCell(state, "onion");
+  assert.equal(digCell(state, onionCell.row, onionCell.column).digsUsed, state.digsUsed);
 });
 
 test("cooking advances a ready state and preserves completed-level history", () => {
@@ -171,11 +230,11 @@ test("cooking the final recipe completes the game rather than creating a missing
   assert.equal(complete.lastAction.type, ACTION_TYPE.GAME_COMPLETE);
 });
 
-test("restart restores a pristine deterministic board while keeping prior history", () => {
-  const started = createGameState();
+test("restart restores a pristine reshuffled board while keeping prior history", () => {
+  const started = createGameState(LEVELS, keepAuthoredOrder);
   const dug = digCell(started, 0, 0);
   const stateWithHistory = { ...dug, completedLevelIds: ["earlier-level"] };
-  const restarted = restartLevel(stateWithHistory);
+  const restarted = restartLevel(stateWithHistory, LEVELS, reverseHarvestOrder);
 
   assert.equal(restarted.levelId, started.levelId);
   assert.equal(restarted.digsUsed, 0);
@@ -184,6 +243,7 @@ test("restart restores a pristine deterministic board while keeping prior histor
   assert.ok(restarted.board.cells.every((cell) => !cell.isDug));
   assert.deepEqual(restarted.completedLevelIds, ["earlier-level"]);
   assert.equal(restarted.lastAction.type, ACTION_TYPE.RESTARTED);
+  assert.notDeepEqual(boardLayout(restarted), boardLayout(started));
 });
 
 test("malformed level data is rejected before a game can start", () => {

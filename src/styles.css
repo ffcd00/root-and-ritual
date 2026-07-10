@@ -804,6 +804,15 @@ button:focus-visible {
     linear-gradient(135deg, #75c554, #a6dd56);
 }
 
+.modal-garden--dusk {
+  background:
+    radial-gradient(circle at 14% 86%, #ece9c2 0 10px, transparent 11px),
+    radial-gradient(circle at 18% 83%, #e5b845 0 4px, transparent 5px),
+    radial-gradient(circle at 85% 85%, #ece9c2 0 11px, transparent 12px),
+    radial-gradient(circle at 82% 81%, #e5b845 0 4px, transparent 5px),
+    linear-gradient(135deg, #4d8c58, #78a750);
+}
+
 .modal-dish {
   position: absolute;
   bottom: -10px;
@@ -848,32 +857,8 @@ button:focus-visible {
   gap: 9px;
 }
 
-.failure-panel {
-  margin-top: 14px;
-  padding: 15px;
-  border: 1px solid #f0cfbe;
-  border-radius: 18px;
-  background: #fff7ee;
-  color: #80584a;
-  text-align: center;
-}
-
-.failure-panel strong,
-.failure-panel span {
-  display: block;
-}
-
-.failure-panel strong {
-  color: #9a4e39;
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 1rem;
-}
-
-.failure-panel span {
-  margin: 5px 0 11px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  line-height: 1.35;
+.failure-modal .completion-content h2 {
+  color: #94533c;
 }
 
 .visually-hidden {

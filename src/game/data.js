@@ -1,8 +1,9 @@
 /**
- * Static, deterministic content for the dig-and-cook game.
+ * Static content for the dig-and-cook game.
  *
- * Tile locations are intentionally authored rather than randomized so a level
- * can always be replayed exactly (which also makes the engine easy to test).
+ * Each level declares a complete pool of hidden tiles. The engine shuffles
+ * that pool whenever a level starts or restarts, so ingredient locations stay
+ * fresh while rocks and overall difficulty remain balanced.
  */
 
 export const TILE_KIND = Object.freeze({
@@ -41,7 +42,7 @@ function deepFreeze(value) {
 
 /**
  * Levels deliberately grow in both board area and number of required harvests.
- * `tiles[row][column]` is the hidden content of that dirt box.
+ * `tiles[row][column]` is the authored tile pool before it is shuffled.
  */
 export const LEVELS = deepFreeze([
   {

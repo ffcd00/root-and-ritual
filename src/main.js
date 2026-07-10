@@ -74,10 +74,16 @@ function saveSoundPreference() {
 
 function render({ focusSelector = null } = {}) {
   const isFinished = game.status === GAME_STATUS.COMPLETE;
-  const preferredFocus = isFinished ? '[data-play-again]' : focusSelector;
+  const isOutOfDigs = game.status === GAME_STATUS.OUT_OF_DIGS;
+  const hasModal = isFinished || isOutOfDigs;
+  const preferredFocus = isFinished
+    ? '[data-play-again]'
+    : isOutOfDigs
+      ? '[data-restart]'
+      : focusSelector;
 
   app.innerHTML = `
-    <div class="game-content" ${isFinished ? 'inert aria-hidden="true"' : ''}>
+    <div class="game-content" ${hasModal ? 'inert aria-hidden="true"' : ''}>
       <header class="topbar">
         <div class="brand" aria-label="Root and Ritual">
           <span class="brand-mark" aria-hidden="true">✦</span>
@@ -98,7 +104,6 @@ function render({ focusSelector = null } = {}) {
         <aside class="side-rail">
           ${renderRecipeCard()}
           ${renderTipCard()}
-          ${game.status === GAME_STATUS.OUT_OF_DIGS ? renderFailureCard() : ''}
         </aside>
         <section class="game-column">
           ${renderGarden()}
@@ -108,7 +113,7 @@ function render({ focusSelector = null } = {}) {
       </section>
     </div>
     <div class="toast" role="status" aria-live="polite"></div>
-    ${isFinished ? renderCompletionModal() : ''}
+    ${isFinished ? renderCompletionModal() : isOutOfDigs ? renderOutOfDigsModal() : ''}
   `;
 
   attachListeners();
@@ -187,16 +192,6 @@ function renderTipCard() {
   `;
 }
 
-function renderFailureCard() {
-  return `
-    <section class="failure-panel" aria-live="polite">
-      <strong>Out of digs</strong>
-      <span>The missing ingredients are still tucked away. Your recipe gets a fresh patch when you retry.</span>
-      <button class="button button--ghost button--wide" type="button" data-restart>Try this patch again</button>
-    </section>
-  `;
-}
-
 function renderGarden() {
   const remainingDigs = getRemainingDigs(game);
   const requiredTotal = game.recipe.ingredients.reduce((sum, ingredient) => sum + ingredient.amount, 0);
@@ -223,7 +218,6 @@ function renderGarden() {
       </div>
       <div class="board-footer">
         <p class="board-message">${statusMessage}</p>
-        ${game.status === GAME_STATUS.OUT_OF_DIGS ? '<button class="button button--ghost" type="button" data-restart>Retry</button>' : ''}
       </div>
     </section>
   `;
@@ -328,7 +322,25 @@ function renderCompletionModal() {
           <h2 id="completion-title">A garden feast!</h2>
           <p>You cooked all ${LEVELS.length} recipes and turned every harvest into something warm, bright, and delicious.</p>
           <div class="modal-actions">
-            <button class="button button--leaf button--wide" type="button" data-play-again>Plant a new garden</button>
+            <button class="button button--leaf button--wide" type="button" data-play-again data-modal-primary>Plant a new garden</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderOutOfDigsModal() {
+  return `
+    <section class="screen-overlay" role="dialog" aria-modal="true" aria-labelledby="out-of-digs-title" aria-describedby="out-of-digs-copy">
+      <div class="completion-modal failure-modal">
+        <div class="modal-garden modal-garden--dusk" aria-hidden="true"><span class="modal-dish">🌙</span></div>
+        <div class="completion-content">
+          <p class="eyebrow">Garden pause</p>
+          <h2 id="out-of-digs-title">Out of digs</h2>
+          <p id="out-of-digs-copy">The remaining ingredients are still underground. Try again for a freshly shuffled garden patch.</p>
+          <div class="modal-actions">
+            <button class="button button--leaf button--wide" type="button" data-restart data-modal-primary>Reshuffle &amp; try again</button>
           </div>
         </div>
       </div>
@@ -382,7 +394,7 @@ function attachListeners() {
   app.querySelector('.screen-overlay')?.addEventListener('keydown', (event) => {
     if (event.key === 'Tab') {
       event.preventDefault();
-      app.querySelector('[data-play-again]')?.focus();
+      app.querySelector('[data-modal-primary]')?.focus();
     }
   });
 }
@@ -402,7 +414,9 @@ function reactToAction() {
     'level-start': 'tap',
   };
   soundscape.play(soundByAction[action.sound] ?? 'tap');
-  queuedToast = ACTION_COPY[action.type] ?? 'The garden changed.';
+  queuedToast = action.type === ACTION_TYPE.OUT_OF_DIGS
+    ? null
+    : ACTION_COPY[action.type] ?? 'The garden changed.';
 }
 
 function showToast(message) {
