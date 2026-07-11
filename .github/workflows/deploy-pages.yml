@@ -20,17 +20,21 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v6
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          package-manager-cache: false
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Validate source
-        run: npm run check
+        run: pnpm run check
 
       - name: Configure GitHub Pages
         if: github.ref == 'refs/heads/main'
@@ -39,11 +43,11 @@ jobs:
 
       - name: Build pull request artifact
         if: github.ref != 'refs/heads/main'
-        run: npm run build
+        run: pnpm run build
 
       - name: Build Pages artifact
         if: github.ref == 'refs/heads/main'
-        run: npm run build
+        run: pnpm run build
         env:
           VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}
 

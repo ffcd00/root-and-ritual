@@ -64,32 +64,32 @@ src/
 ### Prerequisites
 
 - Node.js **22.12+**
-- npm **10+**
+- pnpm **6.11.0**
 
 ```bash
-# Install dependencies
-npm install
+# Install dependencies from the committed lockfile
+pnpm install
 
 # Start the Vite development server
-npm run dev
+pnpm dev
 
 # Run the game-rule test suite
-npm test
+pnpm test
 
 # Run linting, TypeScript checks, and tests
-npm run check
+pnpm check
 
 # Run the complete local CI gate, including a production build
-npm run ci
+pnpm ci
 
 # Preview the optimized production bundle
-npm run build
-npm run preview
+pnpm build
+pnpm preview
 ```
 
 ## ✅ Quality gates
 
-`npm run check` is the fast validation command. `npm run ci` adds the production build. Together they run:
+`pnpm check` is the fast validation command. `pnpm ci` adds the production build. Together they run:
 
 1. ESLint across the codebase
 2. Strict TypeScript project checks
