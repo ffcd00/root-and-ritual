@@ -16,6 +16,7 @@
   --sun: #ffc94c;
   --sky: #94d9d3;
   --danger: #c45742;
+  --shovel-strike-angle: 28deg;
   font-family: 'DM Sans', ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
 }
@@ -492,6 +493,34 @@ button:focus-visible {
   touch-action: manipulation;
 }
 
+.garden-grid-region[data-diggable='true'],
+.garden-grid-region[data-diggable='true'] .garden-tile:not(:disabled) {
+  cursor: none;
+}
+
+.garden-pointer {
+  --cursor-x: -100px;
+  --cursor-y: -100px;
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  background: url('../shared/assets/shovel-cursor.svg') center / contain no-repeat;
+  filter: drop-shadow(0 2px 1px rgba(39, 20, 11, 0.42));
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(var(--cursor-x), var(--cursor-y), 0) rotate(var(--shovel-strike-angle));
+  transform-origin: 50% 95%;
+  transition: opacity 80ms ease;
+  will-change: transform, opacity;
+}
+
+.garden-pointer[data-visible='true'] {
+  opacity: 1;
+}
+
 .garden-tile {
   position: relative;
   display: grid;
@@ -568,6 +597,21 @@ button:focus-visible {
 
 .garden-tile.is-new {
   animation: dig-in 360ms cubic-bezier(0.17, 0.89, 0.32, 1.31) both;
+}
+
+.dig-shovel {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: min(68%, 3.8rem);
+  aspect-ratio: 1;
+  background: url('../shared/assets/shovel-cursor.svg') center / contain no-repeat;
+  filter: drop-shadow(0 2px 1px rgba(39, 20, 11, 0.3));
+  pointer-events: none;
+  transform-origin: 55% 84%;
+  animation: shovel-dig 480ms cubic-bezier(0.19, 0.78, 0.32, 1) both;
 }
 
 .garden-tile.is-shaking {
@@ -939,6 +983,14 @@ button:focus-visible {
   0% { transform: scale(1); filter: brightness(1.35); }
   45% { transform: scale(0.86) rotate(1.5deg); }
   100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes shovel-dig {
+  0% { opacity: 0; transform: translate(-8%, -110%) rotate(-36deg) scale(0.8); }
+  20% { opacity: 1; transform: translate(-18%, -83%) rotate(-28deg) scale(0.93); }
+  59% { opacity: 1; transform: translate(-55%, -18%) rotate(var(--shovel-strike-angle)) scale(1); }
+  77% { opacity: 1; transform: translate(-49%, -11%) rotate(33deg) scale(0.92); }
+  100% { opacity: 0; transform: translate(-44%, -48%) rotate(var(--shovel-strike-angle)) scale(0.78); }
 }
 
 @keyframes ingredient-pop {

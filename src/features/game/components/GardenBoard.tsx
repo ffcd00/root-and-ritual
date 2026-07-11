@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useRef, type CSSProperties, type PointerEvent } from 'react';
 
 import { GAME_STATUS, getRecipeProgress, getRemainingDigs } from '../engine';
 import { INGREDIENTS, LEVELS, TILE_KIND } from '../levels';
@@ -65,6 +65,7 @@ function GardenTile({ cell, active, isNew, onDig }: {
       disabled={!active || cell.isDug}
       onClick={() => onDig(cell.row, cell.column)}
     >
+      {isNew ? <span className="dig-shovel" aria-hidden="true" /> : null}
       <TileArtwork tile={tile} />
     </button>
   );
@@ -85,6 +86,7 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
   const collectedTotal = progress.reduce((sum, ingredient) => sum + ingredient.collected, 0);
   const active = game.status === GAME_STATUS.DIGGING;
   const { dimensions, regionRef } = useContainedGridSize(game.board.rows, game.board.columns);
+  const boardCursorRef = useRef<HTMLSpanElement>(null);
   const gridStyle: CSSProperties & Record<'--columns' | '--rows', number> & Partial<Record<'--grid-width' | '--grid-height', string>> = {
     '--columns': game.board.columns,
     '--rows': game.board.rows,
@@ -92,6 +94,26 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
       '--grid-width': `${dimensions.width}px`,
       '--grid-height': `${dimensions.height}px`,
     }),
+  };
+
+  const hideBoardCursor = (): void => {
+    boardCursorRef.current?.removeAttribute('data-visible');
+  };
+
+  const moveBoardCursor = (event: PointerEvent<HTMLDivElement>): void => {
+    const overDisabledTile = event.target instanceof Element
+      && event.target.closest('.garden-tile:disabled') !== null;
+    if (!active || overDisabledTile || (event.pointerType !== 'mouse' && event.pointerType !== 'pen')) {
+      hideBoardCursor();
+      return;
+    }
+
+    const cursor = boardCursorRef.current;
+    if (cursor === null) return;
+
+    cursor.style.setProperty('--cursor-x', `${event.clientX - 24}px`);
+    cursor.style.setProperty('--cursor-y', `${event.clientY - 45}px`);
+    cursor.setAttribute('data-visible', 'true');
   };
 
   return (
@@ -111,7 +133,15 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
         </div>
       </div>
       <h2 id="garden-heading" className="visually-hidden">{game.levelName} garden</h2>
-      <div className="garden-grid-region" ref={regionRef}>
+      <div
+        className="garden-grid-region"
+        ref={regionRef}
+        data-diggable={active ? 'true' : undefined}
+        onPointerEnter={moveBoardCursor}
+        onPointerMove={moveBoardCursor}
+        onPointerDown={hideBoardCursor}
+        onPointerLeave={hideBoardCursor}
+      >
         <div
           className="garden-grid"
           style={gridStyle}
@@ -128,6 +158,7 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
           ))}
         </div>
       </div>
+      <span className="garden-pointer" ref={boardCursorRef} aria-hidden="true" />
       <div className="board-footer"><p className="board-message">{boardMessage(game)}</p></div>
     </section>
   );
