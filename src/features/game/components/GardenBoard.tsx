@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, type CSSProperties, type PointerEvent } from 'react';
 
 import { GAME_STATUS, getRecipeProgress, getRemainingDigs } from '../engine';
 import { INGREDIENTS, LEVELS, TILE_KIND } from '../levels';
@@ -87,6 +87,9 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
   const active = game.status === GAME_STATUS.DIGGING;
   const { dimensions, regionRef } = useContainedGridSize(game.board.rows, game.board.columns);
   const boardCursorRef = useRef<HTMLSpanElement>(null);
+  const cursorFrameRef = useRef<number | null>(null);
+  const cursorPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const cursorVisibleRef = useRef(false);
   const gridStyle: CSSProperties & Record<'--columns' | '--rows', number> & Partial<Record<'--grid-width' | '--grid-height', string>> = {
     '--columns': game.board.columns,
     '--rows': game.board.rows,
@@ -96,9 +99,25 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
     }),
   };
 
-  const hideBoardCursor = (): void => {
+  const hideBoardCursor = useCallback((): void => {
+    if (cursorFrameRef.current !== null) {
+      window.cancelAnimationFrame(cursorFrameRef.current);
+      cursorFrameRef.current = null;
+    }
+    cursorPositionRef.current = null;
+    if (!cursorVisibleRef.current) return;
+
     boardCursorRef.current?.removeAttribute('data-visible');
-  };
+    cursorVisibleRef.current = false;
+  }, []);
+
+  useEffect(() => () => hideBoardCursor(), [hideBoardCursor]);
+
+  useEffect(() => {
+    if (!active) {
+      hideBoardCursor();
+    }
+  }, [active, hideBoardCursor]);
 
   const moveBoardCursor = (event: PointerEvent<HTMLDivElement>): void => {
     const overDisabledTile = event.target instanceof Element
@@ -111,9 +130,24 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
     const cursor = boardCursorRef.current;
     if (cursor === null) return;
 
-    cursor.style.setProperty('--cursor-x', `${event.clientX - 24}px`);
-    cursor.style.setProperty('--cursor-y', `${event.clientY - 45}px`);
-    cursor.setAttribute('data-visible', 'true');
+    cursorPositionRef.current = {
+      x: event.clientX - 24,
+      y: event.clientY - 45,
+    };
+    if (!cursorVisibleRef.current) {
+      cursor.setAttribute('data-visible', 'true');
+      cursorVisibleRef.current = true;
+    }
+    if (cursorFrameRef.current !== null) return;
+
+    cursorFrameRef.current = window.requestAnimationFrame(() => {
+      const position = cursorPositionRef.current;
+      if (cursor !== null && position !== null && cursorVisibleRef.current) {
+        const { x, y } = position;
+        cursor.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(var(--shovel-strike-angle))`;
+      }
+      cursorFrameRef.current = null;
+    });
   };
 
   return (
