@@ -64,7 +64,6 @@ src/
 ### Prerequisites
 
 - Node.js **22.12+**
-- pnpm **6.11.0**
 
 ```bash
 # Install dependencies from the committed lockfile

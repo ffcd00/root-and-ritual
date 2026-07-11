@@ -4,7 +4,6 @@
   "description": "A responsive garden digging and recipe-cooking game.",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@6.11.0",
   "engines": {
     "node": ">=22.12.0"
   },
