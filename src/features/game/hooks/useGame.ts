@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ACTION_COPY, ACTION_SOUNDS } from '../content';
 import {
   ACTION_TYPE,
+  GAME_STATUS,
   cookAndAdvance,
   createGameState,
   digCell,
@@ -12,6 +13,8 @@ import type { GameState } from '../types';
 import { Soundscape } from '../../../shared/audio/Soundscape';
 
 const SOUND_PREFERENCE_KEY = 'root-and-ritual:sound';
+
+export type FocusTarget = 'next-tile' | 'cook';
 
 function readSoundPreference(): boolean {
   try {
@@ -33,6 +36,7 @@ export interface GameController {
   readonly game: GameState;
   readonly soundEnabled: boolean;
   readonly activeTileId: string | null;
+  readonly focusTarget: FocusTarget | null;
   readonly toast: string | null;
   readonly dig: (row: number, column: number) => void;
   readonly cook: () => void;
@@ -48,6 +52,7 @@ export function useGame(): GameController {
   const gameRef = useRef(game);
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference);
   const [activeTileId, setActiveTileId] = useState<string | null>(null);
+  const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -55,6 +60,13 @@ export function useGame(): GameController {
     gameRef.current = nextGame;
     setGame(nextGame);
     setActiveTileId(activeCellId);
+    setFocusTarget(
+      nextGame.status === GAME_STATUS.READY_TO_COOK
+        ? 'cook'
+        : nextGame.status === GAME_STATUS.DIGGING
+          ? 'next-tile'
+          : null,
+    );
 
     soundscapeRef.current.play(ACTION_SOUNDS[nextGame.lastAction.sound]);
     if (nextGame.lastAction.type === ACTION_TYPE.OUT_OF_DIGS) {
@@ -104,6 +116,7 @@ export function useGame(): GameController {
     gameRef.current = next;
     setGame(next);
     setActiveTileId(null);
+    setFocusTarget('next-tile');
     soundscapeRef.current.play('tap');
     setToast('A fresh season is ready to dig.');
   }, []);
@@ -122,6 +135,7 @@ export function useGame(): GameController {
     game,
     soundEnabled,
     activeTileId,
+    focusTarget,
     toast,
     dig,
     cook,

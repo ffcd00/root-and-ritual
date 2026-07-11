@@ -20,18 +20,18 @@ export function App() {
   const hasModal = isComplete || isOutOfDigs;
 
   useEffect(() => {
-    if (hasModal) return;
+    if (hasModal || gameController.focusTarget === null) return;
 
     const gameContent = gameContentRef.current;
     if (!gameContent) return;
 
-    if (game.status === GAME_STATUS.READY_TO_COOK) {
+    if (gameController.focusTarget === 'cook') {
       gameContent.querySelector<HTMLButtonElement>('[data-cook]')?.focus();
       return;
     }
 
     gameContent.querySelector<HTMLButtonElement>('[data-dig]:not(:disabled)')?.focus();
-  }, [game.digsUsed, game.lastAction.type, game.status, hasModal]);
+  }, [game.digsUsed, game.lastAction.type, hasModal, gameController.focusTarget]);
 
   return (
     <main className="app-shell">
