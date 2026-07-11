@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { GAME_STATUS, getRecipeProgress, getRemainingDigs } from '../engine';
 import { INGREDIENTS, LEVELS, TILE_KIND } from '../levels';
 import type { GameCell, GameState, Tile } from '../types';
+import { useContainedGridSize } from '../../../shared/hooks/useContainedGridSize';
 
 interface GardenBoardProps {
   readonly game: GameState;
@@ -83,8 +84,14 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
   const requiredTotal = game.recipe.ingredients.reduce((sum, ingredient) => sum + ingredient.amount, 0);
   const collectedTotal = progress.reduce((sum, ingredient) => sum + ingredient.collected, 0);
   const active = game.status === GAME_STATUS.DIGGING;
-  const gridStyle: CSSProperties & Record<'--columns', number> = {
+  const { dimensions, regionRef } = useContainedGridSize(game.board.rows, game.board.columns);
+  const gridStyle: CSSProperties & Record<'--columns' | '--rows', number> & Partial<Record<'--grid-width' | '--grid-height', string>> = {
     '--columns': game.board.columns,
+    '--rows': game.board.rows,
+    ...(dimensions === null ? {} : {
+      '--grid-width': `${dimensions.width}px`,
+      '--grid-height': `${dimensions.height}px`,
+    }),
   };
 
   return (
@@ -104,20 +111,22 @@ export function GardenBoard({ game, activeTileId, onDig }: GardenBoardProps) {
         </div>
       </div>
       <h2 id="garden-heading" className="visually-hidden">{game.levelName} garden</h2>
-      <div
-        className="garden-grid"
-        style={gridStyle}
-        aria-label={`${game.board.rows} by ${game.board.columns} dig garden`}
-      >
-        {game.board.cells.map((cell) => (
-          <GardenTile
-            key={cell.id}
-            cell={cell}
-            active={active}
-            isNew={activeTileId === cell.id}
-            onDig={onDig}
-          />
-        ))}
+      <div className="garden-grid-region" ref={regionRef}>
+        <div
+          className="garden-grid"
+          style={gridStyle}
+          aria-label={`${game.board.rows} by ${game.board.columns} dig garden`}
+        >
+          {game.board.cells.map((cell) => (
+            <GardenTile
+              key={cell.id}
+              cell={cell}
+              active={active}
+              isNew={activeTileId === cell.id}
+              onDig={onDig}
+            />
+          ))}
+        </div>
       </div>
       <div className="board-footer"><p className="board-message">{boardMessage(game)}</p></div>
     </section>

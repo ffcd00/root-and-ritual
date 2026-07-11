@@ -25,21 +25,30 @@
 }
 
 html {
+  height: 100%;
   min-height: 100%;
   background: #a8d946;
 }
 
 body {
   min-width: 320px;
+  height: 100vh;
   min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   margin: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   color: var(--ink);
   background:
     radial-gradient(circle at 17% 17%, rgba(241, 255, 183, 0.7) 0 1.5%, transparent 1.7%),
     radial-gradient(circle at 86% 69%, rgba(78, 156, 74, 0.28) 0 1.2%, transparent 1.5%),
     radial-gradient(ellipse at 50% -25%, #d6ed63 0 30%, transparent 58%),
     linear-gradient(138deg, #91cf52 0%, #b9e151 49%, #99cc49 100%);
+}
+
+#root {
+  height: 100%;
+  min-height: 0;
 }
 
 button,
@@ -82,12 +91,25 @@ button:focus-visible {
 
 .app-shell {
   width: min(1180px, 100%);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   margin: 0 auto;
   padding-top: max(clamp(14px, 3vw, 34px), env(safe-area-inset-top));
   padding-right: max(clamp(14px, 4vw, 44px), env(safe-area-inset-right));
   padding-bottom: max(clamp(30px, 6vw, 72px), env(safe-area-inset-bottom));
   padding-left: max(clamp(14px, 4vw, 44px), env(safe-area-inset-left));
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  overflow: clip;
+}
+
+.game-content {
+  display: grid;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(18px, 3vw, 34px);
 }
 
 .topbar {
@@ -95,7 +117,7 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: clamp(18px, 3vw, 34px);
+  margin-bottom: 0;
 }
 
 .brand {
@@ -156,13 +178,16 @@ button:focus-visible {
 
 .game-layout {
   display: grid;
+  min-height: 0;
   grid-template-columns: minmax(0, 1fr);
-  align-items: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
   gap: clamp(16px, 2.5vw, 28px);
 }
 
 .side-rail {
   display: grid;
+  min-height: 0;
   gap: 14px;
 }
 
@@ -177,6 +202,10 @@ button:focus-visible {
   position: relative;
   overflow: hidden;
   padding: 18px;
+}
+
+.recipe-compact-summary {
+  display: none;
 }
 
 .recipe-card::after {
@@ -344,11 +373,18 @@ button:focus-visible {
 }
 
 .game-column {
+  display: grid;
+  min-height: 0;
   min-width: 0;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 14px;
 }
 
 .garden-panel {
   position: relative;
+  display: grid;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: clamp(10px, 1.8vw, 18px);
   border: 4px solid #fffbe9;
   border-radius: clamp(27px, 4vw, 36px);
@@ -371,6 +407,7 @@ button:focus-visible {
 
 .garden-toolbar {
   display: flex;
+  min-width: 0;
   align-items: stretch;
   justify-content: space-between;
   gap: 8px;
@@ -431,14 +468,27 @@ button:focus-visible {
 
 .garden-grid {
   display: grid;
-  width: 100%;
+  width: var(--grid-width, 100%);
+  height: var(--grid-height, auto);
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: var(--columns) / var(--rows);
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
   gap: clamp(3px, 0.75vw, 7px);
   padding: clamp(5px, 1vw, 10px);
   border: 2px solid rgba(51, 114, 53, 0.27);
   border-radius: clamp(20px, 3vw, 29px);
   background: #3e8143;
   box-shadow: inset 0 3px 6px rgba(21, 83, 38, 0.36);
+}
+
+.garden-grid-region {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
   touch-action: manipulation;
 }
 
@@ -446,7 +496,8 @@ button:focus-visible {
   position: relative;
   display: grid;
   min-width: 0;
-  aspect-ratio: 1;
+  min-height: 0;
+  aspect-ratio: auto;
   place-items: center;
   overflow: hidden;
   padding: 0;
@@ -566,6 +617,7 @@ button:focus-visible {
 
 .board-footer {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -717,6 +769,11 @@ button:focus-visible {
   padding: 14px 16px;
 }
 
+.inventory-card,
+.progress-card {
+  align-self: start;
+}
+
 .progress-orb {
   display: grid;
   width: 42px;
@@ -780,6 +837,8 @@ button:focus-visible {
   display: grid;
   place-items: center;
   padding: 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
   background: rgba(19, 73, 42, 0.54);
   backdrop-filter: blur(5px);
   animation: overlay-in 220ms ease both;
@@ -907,6 +966,12 @@ button:focus-visible {
 @media (min-width: 760px) {
   .game-layout {
     grid-template-columns: minmax(240px, 0.58fr) minmax(0, 1.12fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .side-rail {
+    align-content: start;
+    overflow: hidden;
   }
 }
 
@@ -917,14 +982,13 @@ button:focus-visible {
   }
 
   .game-column {
-    display: grid;
     grid-template-columns: minmax(0, 1fr) 205px;
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: 14px;
-    align-items: start;
   }
 
   .garden-panel {
-    grid-row: span 2;
+    grid-row: 1 / span 2;
   }
 
   .inventory-card {
@@ -937,6 +1001,292 @@ button:focus-visible {
 
   .recipe-card {
     padding: 21px;
+  }
+}
+
+/*
+ * Phones and short viewports need the garden to stay the primary, always
+ * visible control. Supporting information stays available in a compact form
+ * while the board receives the flexible track above the basket.
+ */
+@media (max-width: 759px), (max-height: 740px) {
+  .app-shell {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .game-content {
+    gap: 8px;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 7px;
+    font-size: clamp(1.03rem, 4.7vw, 1.3rem);
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px 11px 14px 14px;
+    font-size: 1.03rem;
+  }
+
+  .icon-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 0.98rem;
+  }
+
+  .game-layout {
+    gap: 8px;
+  }
+
+  .side-rail {
+    gap: 0;
+  }
+
+  .tip-card {
+    display: none;
+  }
+
+  .recipe-card {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'summary action';
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    border-radius: 17px;
+  }
+
+  .recipe-card::after {
+    display: none;
+  }
+
+  .recipe-compact-summary {
+    display: flex;
+    min-width: 0;
+    grid-area: summary;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .recipe-compact-dish {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 10px;
+    background: #fff4c4;
+    font-size: 1rem;
+  }
+
+  .recipe-compact-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .recipe-compact-title {
+    overflow: hidden;
+    color: #315d41;
+    font-size: 0.72rem;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .recipe-compact-items {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .recipe-compact-item {
+    display: inline-flex;
+    min-width: 23px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 1px solid #e6ead8;
+    border-radius: 7px;
+    background: #fffef9;
+    font-size: 0.76rem;
+    line-height: 1;
+  }
+
+  .recipe-compact-count {
+    color: #607b68;
+    font-size: 0.48rem;
+    font-weight: 800;
+  }
+
+  .recipe-card > .eyebrow,
+  .recipe-card > .recipe-head,
+  .recipe-card > .recipe-description,
+  .recipe-card > .ingredient-list {
+    display: none;
+  }
+
+  .recipe-action {
+    grid-area: action;
+    margin: 0;
+  }
+
+  .recipe-action .button {
+    min-height: 36px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .game-column {
+    gap: 8px;
+  }
+
+  .garden-panel {
+    padding: 8px;
+    border-width: 3px;
+    border-radius: 22px;
+  }
+
+  .garden-panel::before {
+    display: none;
+  }
+
+  .garden-toolbar {
+    margin: 0 0 8px;
+  }
+
+  .level-badge,
+  .dig-counter,
+  .collection-counter {
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-size: 0.66rem;
+  }
+
+  .level-badge {
+    gap: 5px;
+  }
+
+  .level-badge .sprout,
+  .dig-counter .tool {
+    font-size: 0.88rem;
+  }
+
+  .garden-toolbar-right {
+    gap: 4px;
+  }
+
+  .garden-grid {
+    gap: clamp(3px, 0.5vw, 5px);
+    padding: clamp(5px, 0.7vw, 8px);
+    border-radius: 19px;
+  }
+
+  .board-footer {
+    margin: 8px 2px 0;
+  }
+
+  .board-message {
+    font-size: clamp(0.65rem, 1.5vw, 0.76rem);
+  }
+
+  .inventory-card {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    margin-top: 0;
+    padding: 7px 10px;
+    border-radius: 17px;
+  }
+
+  .inventory-heading {
+    display: block;
+    margin: 0;
+  }
+
+  .inventory-heading h2 {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .inventory-total {
+    display: none;
+  }
+
+  .inventory-slots {
+    min-height: 34px;
+    flex-wrap: nowrap;
+    gap: 5px;
+    overflow: hidden;
+  }
+
+  .inventory-chip {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 3px;
+    border-radius: 10px;
+  }
+
+  .inventory-chip .food-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 1.2rem;
+  }
+
+  .inventory-chip-count {
+    right: -3px;
+    bottom: -4px;
+    width: 16px;
+    height: 16px;
+    border-width: 1px;
+    font-size: 0.55rem;
+  }
+
+  .inventory-empty {
+    min-height: 34px;
+    font-size: 0.65rem;
+    text-align: center;
+  }
+
+  .progress-card {
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 17px;
+  }
+
+  .progress-orb {
+    width: 30px;
+    height: 30px;
+    font-size: 0.86rem;
+  }
+
+  .progress-copy strong {
+    font-size: 0.69rem;
+  }
+
+  .progress-copy span {
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-height: 620px) {
+  .progress-card {
+    display: none;
   }
 }
 
@@ -953,8 +1303,8 @@ button:focus-visible {
   .level-badge,
   .dig-counter,
   .collection-counter {
-    padding: 7px 8px;
-    font-size: 0.68rem;
+    padding: 6px 7px;
+    font-size: 0.65rem;
   }
 
   .garden-toolbar-right {
@@ -968,6 +1318,27 @@ button:focus-visible {
   .button {
     min-height: 43px;
     padding: 9px 12px;
+  }
+
+  .recipe-compact-dish,
+  .recipe-compact-title {
+    display: none;
+  }
+
+  .recipe-compact-items {
+    gap: 2px;
+  }
+
+  .recipe-compact-item {
+    min-width: 22px;
+    height: 21px;
+    font-size: 0.71rem;
+  }
+
+  .recipe-action .button {
+    min-height: 36px;
+    padding: 7px 8px;
+    font-size: 0.67rem;
   }
 }
 
