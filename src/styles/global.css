@@ -253,6 +253,10 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+.recipe-action {
+  margin-top: 14px;
+}
+
 .ingredient-list {
   position: relative;
   z-index: 1;

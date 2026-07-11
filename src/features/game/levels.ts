@@ -1,18 +1,21 @@
-/**
- * Static content for the dig-and-cook game.
- *
- * Each level declares a complete pool of hidden tiles. The engine shuffles
- * that pool whenever a level starts or restarts, so ingredient locations stay
- * fresh while rocks and overall difficulty remain balanced.
- */
+import type {
+  EmptyTile,
+  IngredientDefinition,
+  IngredientId,
+  IngredientTile,
+  LevelDefinition,
+  RockTile,
+  Tile,
+} from "./types";
 
+/** Runtime tile values, kept alongside the authored content for UI consumers. */
 export const TILE_KIND = Object.freeze({
   INGREDIENT: "ingredient",
   EMPTY: "empty",
   ROCK: "rock",
-});
+} as const);
 
-export const INGREDIENTS = Object.freeze({
+export const INGREDIENTS: Readonly<Record<IngredientId, IngredientDefinition>> = Object.freeze({
   basil: Object.freeze({ label: "Basil", emoji: "🌿" }),
   carrot: Object.freeze({ label: "Carrot", emoji: "🥕" }),
   corn: Object.freeze({ label: "Corn", emoji: "🌽" }),
@@ -26,17 +29,22 @@ export const INGREDIENTS = Object.freeze({
   tomato: Object.freeze({ label: "Tomato", emoji: "🍅" }),
 });
 
-const ingredient = (item) => ({ kind: TILE_KIND.INGREDIENT, item });
-const empty = () => ({ kind: TILE_KIND.EMPTY });
-const rock = () => ({ kind: TILE_KIND.ROCK });
+const ingredient = (item: IngredientId): IngredientTile => ({
+  kind: TILE_KIND.INGREDIENT,
+  item,
+});
 
-function deepFreeze(value) {
-  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+const empty = (): EmptyTile => ({ kind: TILE_KIND.EMPTY });
+const rock = (): RockTile => ({ kind: TILE_KIND.ROCK });
+
+function deepFreeze<T>(value: T): T {
+  if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
     Object.freeze(value);
     for (const nestedValue of Object.values(value)) {
       deepFreeze(nestedValue);
     }
   }
+
   return value;
 }
 
@@ -44,7 +52,7 @@ function deepFreeze(value) {
  * Levels deliberately grow in both board area and number of required harvests.
  * `tiles[row][column]` is the authored tile pool before it is shuffled.
  */
-export const LEVELS = deepFreeze([
+const levelDefinitions: readonly LevelDefinition[] = [
   {
     id: "root-cellar",
     name: "Root Cellar Soup",
@@ -130,4 +138,8 @@ export const LEVELS = deepFreeze([
       [rock(), empty(), rock(), empty(), empty(), rock()],
     ],
   },
-]);
+];
+
+export const LEVELS: readonly LevelDefinition[] = deepFreeze(levelDefinitions);
+
+export type { Tile };

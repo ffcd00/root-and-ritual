@@ -1,0 +1,16 @@
+# Dependencies and package-manager output
+node_modules/
+npm-debug.log*
+
+# Build and test output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+.DS_Store
