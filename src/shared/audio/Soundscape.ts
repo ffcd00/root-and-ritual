@@ -2,6 +2,8 @@ export type SoundEffect = 'tap' | 'dig' | 'find' | 'rock' | 'cook' | 'win';
 
 type AudioContextConstructor = typeof AudioContext;
 
+const MASTER_VOLUME = 1.7;
+
 interface AudioWindow extends Window {
   webkitAudioContext?: AudioContextConstructor;
 }
@@ -15,6 +17,7 @@ interface AudioWindow extends Window {
  */
 export class Soundscape {
   #context: AudioContext | null = null;
+  #masterGain: GainNode | null = null;
 
   public constructor(private enabled = true) {}
 
@@ -30,6 +33,7 @@ export class Soundscape {
     if (!AudioContextClass) return;
 
     this.#context ??= new AudioContextClass();
+    this.#masterGain ??= this.#createMasterGain();
     if (this.#context.state === 'suspended') {
       await this.#context.resume();
     }
@@ -92,7 +96,7 @@ export class Soundscape {
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(volume, start + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    oscillator.connect(gain).connect(this.#context.destination);
+    oscillator.connect(gain).connect(this.#masterGain ?? this.#context.destination);
     oscillator.start(start);
     oscillator.stop(start + duration + 0.02);
   }
@@ -115,7 +119,25 @@ export class Soundscape {
     gain.gain.setValueAtTime(volume, start);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     source.buffer = buffer;
-    source.connect(filter).connect(gain).connect(this.#context.destination);
+    source.connect(filter).connect(gain).connect(this.#masterGain ?? this.#context.destination);
     source.start(start);
+  }
+
+  #createMasterGain(): GainNode {
+    if (!this.#context) throw new Error('Audio context is unavailable.');
+
+    const masterGain = this.#context.createGain();
+    const limiter = this.#context.createDynamicsCompressor();
+    const now = this.#context.currentTime;
+
+    masterGain.gain.setValueAtTime(MASTER_VOLUME, now);
+    limiter.threshold.setValueAtTime(-6, now);
+    limiter.knee.setValueAtTime(0, now);
+    limiter.ratio.setValueAtTime(20, now);
+    limiter.attack.setValueAtTime(0.003, now);
+    limiter.release.setValueAtTime(0.12, now);
+    masterGain.connect(limiter).connect(this.#context.destination);
+
+    return masterGain;
   }
 }
