@@ -17,7 +17,8 @@ export function App() {
   const { game } = gameController;
   const isComplete = game.status === GAME_STATUS.COMPLETE;
   const isOutOfDigs = game.status === GAME_STATUS.OUT_OF_DIGS;
-  const hasModal = isComplete || isOutOfDigs;
+  const isReadyToCook = game.status === GAME_STATUS.READY_TO_COOK;
+  const hasModal = isComplete || isOutOfDigs || isReadyToCook;
 
   useEffect(() => {
     if (hasModal || gameController.focusTarget === null) return;
@@ -64,6 +65,9 @@ export function App() {
       ) : null}
       {isOutOfDigs ? (
         <GameModal variant="out-of-digs" game={game} onPrimaryAction={gameController.restart} />
+      ) : null}
+      {isReadyToCook ? (
+        <GameModal variant="ready-to-cook" game={game} onPrimaryAction={gameController.cook} />
       ) : null}
     </main>
   );
